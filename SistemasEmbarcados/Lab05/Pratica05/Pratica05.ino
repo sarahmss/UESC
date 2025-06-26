@@ -5,19 +5,18 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: smodesto <smodesto@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/21 09:14:50 by smodesto          #+#    #+#             */
-/*   Updated: 2025/05/21 09:14:50 by smodesto         ###   ########.fr       */
+/*   Created: 2025/06/20 20:26:52 by smodesto          #+#    #+#             */
+/*   Updated: 2025/06/20 20:26:52 by smodesto         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./Pratica05.h"
 
-/******************************************************************************/
 
 #define OUTPUT_PIN_0      (1 << PD5) // Pin 5 (PD5 == OC0B)
 #define OUTPUT_PIN_1      (1 << PB2) // Pin 10 (PB2 == OC1B)
-#define TOP_1ms           1000       // 1ms --- 1000Hz
-#define F_CLK             16000000
+#define TOP_1ms           17000       // 1ms --- 1000Hz
+#define F_CLK             16e6
 
 
 static unsigned int duracao[] = {15, 5, 15, 7, 30, 15, 30, 30, 30, 30, 30, 30, 15, 30, 15, 30, 15, 30, 30, 15, 30, 22, 15, 15,
@@ -43,7 +42,7 @@ void PrintOut(uint8_t period, uint8_t times, uint8_t n, int nota){
     Serial.println(nota);
 }
 
-/*************************************** Temporizador 1 - CTC (1ms) ********************************/
+/************* Temporizador 1 - CTC (1ms) ************/
 
 void ConfTimer1(void)
 {
@@ -91,11 +90,12 @@ void ConfTimer1(void)
 */
 ISR (TIMER1_COMPA_vect)
 {
+    PORTB ^= OUTPUT_PIN_1;
+
     static uint8_t  n = -1;  
     static uint8_t  times = 0;  
     static uint8_t  period = 0;  
 
-    PORTB ^= OUTPUT_PIN_1;
     
     if (times == period){
       n = n < LENGTH ? (n + 1) : 0;
@@ -106,10 +106,10 @@ ISR (TIMER1_COMPA_vect)
       times = 0;
     }  
     times++;
-    PrintOut(period, times, n, nota[n]);
+   // PrintOut(period, times, n, nota[n]);
 }
 
-// ========================================================= Temporizador 0 - PWM (f_var) ================================================
+// ============================= Temporizador 0 - PWM (f_var) ========================
 // F_pwm = F_clk/(N * (TOP + 1)) ; F_clk = 16 MHz   
 
 void    ConfTimer0(int f_pwm){
@@ -123,20 +123,20 @@ void    ConfTimer0(int f_pwm){
     TCCR0A = 0;
     TCCR0B = 0;
 
-    int top = F_CLK / (8 * f_pwm);
-    int duty_cycle = top / 2;
+    int top = F_CLK /(256.0 * f_pwm);
+    int duty_cycle = top / 2.0;
     // OCRnX: Outupt Compare Register ->  stores the compare value
     OCR0A = top;
     OCR0B = duty_cycle;
 
 
     // TCCRnX: Timer/Counter Control Register 
-
     // COMBnX: Compare Match Output B Mode 
     // COM0B1:0 = 0b10 (non-inverting mode - HIGH at bottom, LOW on Match)
     // OC0B -> store
     TCCR0A |= (1 << COM0B1);   
     TCCR0A &= ~(1 << COM0B0);    
+
     // WGMn: Waveform Generation Mode bit
     // WGM02:0 = 0b111 (Fast PWM with OCR0A as TOP)
     TCCR0B |= (1 << WGM02);
@@ -144,10 +144,10 @@ void    ConfTimer0(int f_pwm){
     TCCR0A |= (1 << WGM00);
 
     // CSn: Clock select
-    // CS02:0 = 0b010 (Prescaler == 8 -> F_clck / 8) 
-    TCCR0B &= ~(1 << CS00);
-    TCCR0B |= (1 << CS01); 
-    TCCR0B &= ~(1 << CS02) ;
+    // CS02:0 = 0b100 (Prescaler == 256 -> F_clck / 256) 
+    TCCR0B |= (1 << CS02); 
+    TCCR0B &= ~(1 << CS01);
+    TCCR0B &= ~(1 << CS00) ;
 }
 
 void setup(void){
