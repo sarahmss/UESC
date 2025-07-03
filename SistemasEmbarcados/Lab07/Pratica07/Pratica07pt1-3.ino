@@ -68,18 +68,18 @@ void setup() {
   ADCSRB &= ~(1 << ADTS0);
 
   // ADMUXn: Registrador de seleção e multiplexação
-  // REFS1:0 = (0x11): Tensão de referência == (tensão interna do arduino 1.1V)
+  // REFS1:0 = (0x01): Tensão de referência == AVCC (tensão interna do arduino)
   ADMUX |= (1 << REFS0); 
-  ADMUX |= (1 << REFS1); 
+  ADMUX &= ~(1 << REFS1); 
+
+  //ADLAR = (0x1): Left adjust ADC result to allow easy 10 bit reading
+  ADMUX |= (1 << ADLAR);
 
   // MUX3:0 = (0x000): Define a entrada única ADC0
   ADMUX &= ~(1 << MUX0);
   ADMUX &= ~(1 << MUX1);
   ADMUX &= ~(1 << MUX2);
   ADMUX &= ~(1 << MUX3);
-
-  //ADLAR = (0x1): Left adjust ADC result to allow easy 10 bit reading
-  ADMUX |= (1 << ADLAR);
 
   Conf125kHz();
 //   Conf500kHz();
@@ -92,14 +92,10 @@ void setup() {
 
 
 ISR(ADC_VECT){
-  //  ??
-  //TIFR1 = (1 << OCF1A);
-
-  // Averigua o fim da conversão (ADSC != 0)
-  //while(ADCSRA & (1 << ADSC));
+  TIFR1 = (1 << OCF1A);
 
   // Lê valor de 10 bits  
-  ADCValue = ADCL | (ADCH << 8); 
+  ADCValue = ADC; 
 
   // Lê valor de 8 bits  
   //   ADCValue = ADCH; 
@@ -107,9 +103,10 @@ ISR(ADC_VECT){
   if (samples < 5000){
     Serial.print(ADCValue);
     Serial.print("|");
-    Serial.print(ADCValue * 1024 / 1.1);
+    Serial.print(ADCValue * 1024 / 5);
     Serial.print(",");
-
+  }
+  else {
     ADCSRA &= ~(1 << ADIE); // Desabilita a conversao AD
   }
   samples++;

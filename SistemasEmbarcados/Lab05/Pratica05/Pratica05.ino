@@ -138,7 +138,7 @@ void    ConfTimer0(int f_pwm){
     TCCR0A &= ~(1 << COM0B0);    
 
     // WGMn: Waveform Generation Mode bit
-    // WGM02:0 = 0b111 (Fast PWM with OCR0A as TOP)
+    // WGM02:0 = 0b101 (Fast PWM with OCR0A as TOP)
     TCCR0B |= (1 << WGM02);
     TCCR0A &= ~ (1 << WGM01); 
     TCCR0A |= (1 << WGM00);
